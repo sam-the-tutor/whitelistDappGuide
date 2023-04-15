@@ -1,0 +1,29 @@
+{
+  "canisters": {
+    "whitelistDapp_backend": {
+      "main": "src/whitelistDapp_backend/main.mo",
+      "type": "motoko"
+    },
+    "whitelistDapp_frontend": {
+      "dependencies": [
+        "whitelistDapp_backend"
+      ],
+      "frontend": {
+        "entrypoint": "src/whitelistDapp_frontend/src/index.html"
+      },
+      "source": [
+        "src/whitelistDapp_frontend/assets",
+        "dist/whitelistDapp_frontend/"
+      ],
+      "type": "assets"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
