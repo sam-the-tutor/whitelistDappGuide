@@ -7,16 +7,20 @@ import Result "mo:base/Result";
 
 //declare an actor for the whitlist dapp.
 //whoever deploys it insiide will be the owner
-actor class whitelistDapp(dappOwner : Principal) = {
-
-  //store the owner of the dapp
-  var owner : Principal = dappOwner;
+actor class whitelistDapp(dappOwnerdappOwner : Principal) = {
 
   //declare buffer storage for whitelist requests
   let requestBuffer = Buffer.Buffer<Principal>(20);
 
-  //declare buffer storage for whitelisted accounts
-  let whitelistedBuffer = Buffer.Buffer<Principal>(20);
+  //store the owner of the dapp
+  stable let owner : Principal = dappOwnerdappOwner;
+
+  //declare a hashmap to add users to the whitelist
+  let whitelistedUsers = HashMap.HashMap<Principal, Bool>(
+    1,
+    Principal.equal,
+    Principal.hash,
+  );
 
   //declare buffer storage for whitelist requests
   let adminBuffer = Buffer.Buffer<Principal>(20);
@@ -25,11 +29,16 @@ actor class whitelistDapp(dappOwner : Principal) = {
   public shared({ caller }) func requestWhitelist() : async Text {
     if (Buffer.contains<Principal>(requestBuffer, caller, Principal.equal)) {
       "you have already requested for a whitelist";
-    } else if (Buffer.contains<Principal>(whitelistedBuffer, caller, Principal.equal)) {
-      return "You are already whitelisted"
     } else {
-      requestBuffer.add(caller);
-      return "Request accepted. Waiting for admin confirmation";
+      switch (whitelistedUsers.get(caller)) {
+        case (?true) {
+          return "User already whitelisted";
+        };
+        case (?false or null) {
+          requestBuffer.add(caller);
+          return "Request accepted. Waiting for admin confirmation";
+        };
+      };
 
     };
   };
@@ -101,6 +110,7 @@ actor class whitelistDapp(dappOwner : Principal) = {
   public shared({ caller }) func whitelistUser(user : Principal) : async Text {
     var resultText : Text = "";
     if (await isAdmin(caller)) {
+      whitelistedUsers.put(user, true);
 
       for (entry in requestBuffer.vals()) {
         if (entry == user) {
@@ -111,7 +121,6 @@ actor class whitelistDapp(dappOwner : Principal) = {
           );
           switch (entryIndex) {
             case (?index) {
-              whitelistedBuffer.add(user);
               ignore requestBuffer.remove(index);
               resultText := "user whitelisted successfully";
             };
@@ -133,37 +142,18 @@ actor class whitelistDapp(dappOwner : Principal) = {
   //dewhitelist a user
   public shared({ caller }) func removeWhiteliste(user : Principal) : async Text {
     if (await isAdmin(caller)) {
-      var resultText : Text = "";
 
-      for (entry in whitelistedBuffer.vals()) {
-        if (entry == user) {
-          let entryIndex = Buffer.indexOf<Principal>(
-            entry,
-            whitelistedBuffer,
-            Principal.equal,
-          );
-          switch (entryIndex) {
-            case (?index) {
-              ignore whitelistedBuffer.remove(index);
-              resultText := "whitelist revoked successfully";
-            };
-            case (null) {
-              resultText := "user does not exist";
-            };
-          };
-
-        };
-      };
-      return resultText;
+      whitelistedUsers.delete(user);
+      "user de-whitelisted successfully"
 
     } else {
-      "you are not aproved to revoke whitelists";
+      "you are not aproved to whitelist users";
     }
 
   };
 
   //get all admins
-  public shared({ caller }) func getAdminList() : async [Principal] {
+  public shared({ caller }) func geAdminList() : async [Principal] {
     if (await isAdmin(caller)) {
       Buffer.toArray(adminBuffer);
     } else {
@@ -180,29 +170,25 @@ actor class whitelistDapp(dappOwner : Principal) = {
     };
   };
 
-  //get all requests
-  public shared({ caller }) func getWhiteList() : async [Principal] {
-    if (await isAdmin(caller)) {
-      Buffer.toArray(whitelistedBuffer);
-    } else {
-      [];
-    };
-  };
 
   //check status of the whitelist
-  public shared({ caller }) func checkStatus() : async Text {
-    if ((Buffer.contains<Principal>(requestBuffer, caller, Principal.equal))) {
+  public shared({caller}) func checkStatus() : async Text{
+    if((Buffer.contains<Principal>(adminBuffer, caller, Principal.equal))){
       return "Waiting for admin confirmation.";
-    } else if ((Buffer.contains<Principal>(whitelistedBuffer, caller, Principal.equal))) {
-      return "Congratulations. You are whitelisted"
-
-    } else {
-      return "Status unknown. Please request for the whitelist spot";
-    };
+    }else{
+      switch(whitelistedUsers.get(caller)) {
+        case(null) { 
+          return "Unknow. Please request for whitelist";
+         };
+        case(?entry) {
+          "Congratulations. You are whitelisted";
+         };
+      };
+    }
   };
 
   // Return the principal identifier of the caller of this method.
-  public func theOwner() : async Principal {
+  public shared(msg) func whoami() : async Principal {
     return owner;
   };
 
