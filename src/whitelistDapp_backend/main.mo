@@ -5,12 +5,13 @@ import HashMap "mo:base/HashMap";
 import Buffer "mo:base/Buffer";
 import Result "mo:base/Result";
 
-//declare an actor for the whitlist dapp.
-//whoever deploys it insiide will be the owner
+
+//declare an actor for the whitelist dapp.
+//Declare the dapp owner on deployment
 actor class whitelistDapp(dappOwner : Principal) = {
 
   //store the owner of the dapp
-  var owner : Principal = dappOwner;
+  stable let owner : Principal = dappOwner;
 
   //declare buffer storage for whitelist requests
   let requestBuffer = Buffer.Buffer<Principal>(20);
@@ -18,13 +19,13 @@ actor class whitelistDapp(dappOwner : Principal) = {
   //declare buffer storage for whitelisted accounts
   let whitelistedBuffer = Buffer.Buffer<Principal>(20);
 
-  //declare buffer storage for whitelist requests
+  //declare buffer storage for admin accounts
   let adminBuffer = Buffer.Buffer<Principal>(20);
 
   //user requests to be whitelisted
   public shared({ caller }) func requestWhitelist() : async Text {
     if (Buffer.contains<Principal>(requestBuffer, caller, Principal.equal)) {
-      "you have already requested for a whitelist";
+      "You have already requested for a whitelist";
     } else if (Buffer.contains<Principal>(whitelistedBuffer, caller, Principal.equal)) {
       return "You are already whitelisted"
     } else {
@@ -41,13 +42,13 @@ actor class whitelistDapp(dappOwner : Principal) = {
       if (not Buffer.contains<Principal>(adminBuffer, newAdmin, Principal.equal)) {
         //assert (not Buffer.contains<Principal>(adminBuffer, newAdmin, Principal.equal));
         adminBuffer.add(newAdmin);
-        "admin added successfully";
+        "Admin added successfully";
       } else {
         "User already admin";
       }
 
     } else {
-      "you are not aproved to add admins";
+      "You are not approved to add admins";
     }
 
   };
@@ -68,7 +69,7 @@ actor class whitelistDapp(dappOwner : Principal) = {
           switch (entryIndex) {
             case (?index) {
               ignore adminBuffer.remove(index);
-              resultText := "admin deleted successfully";
+              resultText := "Admin deleted successfully";
             };
             case (null) {
               resultText := "Admin does not exist";
@@ -80,7 +81,7 @@ actor class whitelistDapp(dappOwner : Principal) = {
       return resultText;
 
     } else {
-      "you are not aproved to delete admins";
+      "You are not approved to delete admins";
     }
 
   };
@@ -113,10 +114,10 @@ actor class whitelistDapp(dappOwner : Principal) = {
             case (?index) {
               whitelistedBuffer.add(user);
               ignore requestBuffer.remove(index);
-              resultText := "user whitelisted successfully";
+              resultText := "User whitelisted successfully";
             };
             case (null) {
-              resultText := "request does not exist";
+              resultText := "Request does not exist";
             };
           };
 
@@ -125,12 +126,12 @@ actor class whitelistDapp(dappOwner : Principal) = {
       return resultText;
 
     } else {
-      "you are not aproved to whitelist users";
+      "You are not approved to whitelist users";
     }
 
   };
 
-  //dewhitelist a user
+  //Remove whitelist from the user
   public shared({ caller }) func removeWhiteliste(user : Principal) : async Text {
     if (await isAdmin(caller)) {
       var resultText : Text = "";
@@ -145,10 +146,10 @@ actor class whitelistDapp(dappOwner : Principal) = {
           switch (entryIndex) {
             case (?index) {
               ignore whitelistedBuffer.remove(index);
-              resultText := "whitelist revoked successfully";
+              resultText := "Whitelist revoked successfully";
             };
             case (null) {
-              resultText := "user does not exist";
+              resultText := "User does not exist";
             };
           };
 
@@ -157,12 +158,12 @@ actor class whitelistDapp(dappOwner : Principal) = {
       return resultText;
 
     } else {
-      "you are not aproved to revoke whitelists";
+      "You are not approved to revoke whitelists";
     }
 
   };
 
-  //get all admins
+  //get all admin IDs
   public shared({ caller }) func getAdminList() : async [Principal] {
     if (await isAdmin(caller)) {
       Buffer.toArray(adminBuffer);
@@ -171,7 +172,7 @@ actor class whitelistDapp(dappOwner : Principal) = {
     };
   };
 
-  //get all requests
+  //get all IDs requesting for whitelist
   public shared({ caller }) func getRequestList() : async [Principal] {
     if (await isAdmin(caller)) {
       Buffer.toArray(requestBuffer);
@@ -180,7 +181,7 @@ actor class whitelistDapp(dappOwner : Principal) = {
     };
   };
 
-  //get all requests
+  //get all whitelisted IDs
   public shared({ caller }) func getWhiteList() : async [Principal] {
     if (await isAdmin(caller)) {
       Buffer.toArray(whitelistedBuffer);
@@ -201,9 +202,13 @@ actor class whitelistDapp(dappOwner : Principal) = {
     };
   };
 
-  // Return the principal identifier of the caller of this method.
+  // Return the principal of the dapp owner
   public func theOwner() : async Principal {
     return owner;
   };
 
 };
+
+
+
+
