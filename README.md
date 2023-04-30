@@ -1,4 +1,4 @@
-##Whitelist Dapp built with Motoko.
+# Whitelist Dapp built with Motoko.
 
 
 ## How the dapp works.
